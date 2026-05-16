@@ -1,29 +1,73 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Physics } from "@react-three/rapier";
+import { KeyboardControls, Environment } from "@react-three/drei";
+import { Suspense } from "react";
+import Player from "./Player";
+import ObstacleManager from "./ObstacleManager";
+import Clouds from "./Clouds";
+import UI from "./UI";
+
+(window as any).gameStatus = "START";
+
+// Detect mobile once at module load — avoids window.innerWidth reads in render
+const IS_MOBILE = window.innerWidth < 768;
 
 export default function App() {
   return (
-    // 1. Container: Tailwind se full screen black background
-    <div className="w-full h-screen bg-[#020617]">
-      {/* 2. The Universe: Canvas portal khulta hai yahan se */}
-      <Canvas camera={{ position: [3, 3, 3] }}>
-        {/* 3. The Sun: Ambient light jo har jagah barabar roshni degi */}
-        <ambientLight intensity={1} />
+    <KeyboardControls map={[{ name: "jump", keys: ["Space"] }]}>
+      <div className="w-full h-screen bg-sky-300 bg-[url('/skybox.jpg')] bg-cover bg-center overflow-hidden relative">
+        <UI />
 
-        {/* 4. The Flashlight: Point light jo ek taraf se chamkegi */}
-        <pointLight position={[10, 10, 10]} intensity={1} />
+        <Canvas
+          // ── Mobile-critical performance settings ──────────────────────────
+          dpr={[1, IS_MOBILE ? 1.5 : 2]} // cap pixel ratio — biggest GPU win
+          shadows={false} // shadow maps are expensive, skip
+          frameloop="always"
+          gl={{
+            antialias: !IS_MOBILE, // AA off on mobile = 2-3x fillrate
+            powerPreference: "high-performance",
+            alpha: true,
+            depth: true
+          }}
+          camera={{ fov: IS_MOBILE ? 85 : 75, near: 0.1, far: 150 }}
+        >
+          <Suspense fallback={null}>
+            <ambientLight intensity={0.75} />
+            <directionalLight position={[5, 10, 5]} intensity={1.2} />
+            {/* Shorter fog range = fewer fragments to shade on mobile */}
+            <fog attach="fog" args={["#7dd3fc", 15, IS_MOBILE ? 70 : 90]} />
 
-        {/* 5. The Hero: Humara simple box */}
-        <mesh>
-          {/* Skeleton: 1 unit lamba, chauda, uncha box */}
-          <boxGeometry args={[2, 2, 2]} />
-          {/* Skin: Lightning Blue color */}
-          <meshStandardMaterial color="#2563eb" />
-        </mesh>
+            <Physics
+              gravity={[0, -20, 0]}
+              // Fixed 60Hz physics tick — prevents variable-rate physics jitter
+              timeStep={1 / 60}
+              updatePriority={0}
+            >
+              <Player />
+              <ObstacleManager />
+            </Physics>
 
-        {/* 6. The Navigator: Taaki hum mouse se ghum kar dekh sakein */}
-        <OrbitControls />
-      </Canvas>
-    </div>
+            <Clouds />
+
+            <Environment preset="sunset" />
+          </Suspense>
+        </Canvas>
+
+        {/* Score HUD — written directly by Player via DOM for zero React overhead */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <h1
+            id="score"
+            className="font-black text-white text-center leading-none"
+            style={{
+              fontFamily: "'Impact', monospace",
+              fontSize: "clamp(36px, 9vw, 72px)",
+              textShadow: "2px 2px 0 rgba(0,0,0,0.5), 0 0 20px rgba(56,189,248,0.4)"
+            }}
+          >
+            0
+          </h1>
+        </div>
+      </div>
+    </KeyboardControls>
   );
 }
