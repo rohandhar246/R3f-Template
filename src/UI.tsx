@@ -85,8 +85,8 @@ export default function UI() {
                 textShadow: "0 10px 20px rgba(0,0,0,0.8), 0 0 40px rgba(56,189,248,0.6)"
               }}
             >
-              FLAPPY
-              <span className="block text-sky-400" style={{ fontSize: "0.62em", letterSpacing: "0.12em", WebkitTextStroke: "2px #0f172a" }}>
+              FLAPPY BIRD
+              <span className="block text-sky-400" style={{ fontSize: "0.62em", letterSpacing: "0.12em", WebkitTextStroke: "2px #005EFF" }}>
                 3D
               </span>
             </h1>
